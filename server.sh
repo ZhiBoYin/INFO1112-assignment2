@@ -1,6 +1,8 @@
 IP_ADDR=""
 PORT=""
 
+nc -l -p 1234
+
 get_ip(){
     local line=""
     local char=""
@@ -25,5 +27,11 @@ get_ip(){
     done
 }
 
-IP_ADDR="$(get_ip)"
-echo "$IP_ADDR"
+get_port(){
+    res="$(ss -ltn | awk '{print $4}' | tail -n 1)"
+    res=${res#*":"}
+    echo res
+}
+
+
+echo "${get_port}"
