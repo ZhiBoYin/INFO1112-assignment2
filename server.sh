@@ -22,8 +22,8 @@ get_ip(){
     done
 }
 get_port(){
-    res="$(ss -ltn | awk '{print $4}' | tail -n 1)"
-    res=${res#*":"}
+    res="$(ss -Hltn | awk '{print $4}' | tail -n 1)"
+    res=${res##*":"}
     echo $res
 }
 
@@ -36,8 +36,20 @@ process_population(){
     :
 }
 
-#print new connection IP&Port
+#print the server info and new connection IP&Port
 (
+    port=""
+    # Wait until nc has opened the listening socket.
+    until [[ -n "$port" ]]; do
+        port=$(get_port)
+        if [[ -z "$port" ]]; then
+            sleep 0.05
+        fi
+    done
+    echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
+    echo "Listening on 0.0.0.0 $(get_port)"
+    
+
     pre=""
     while true; do
         peer=$(ss -Htn state established '( sport = :1234 )' |
@@ -52,22 +64,10 @@ process_population(){
 
 #open connection then determine which branch to go based on message
 shopt -s nocasematch
-
-
-
 hasPrintOpenServer=0
 while true;do
     nc -l -p 1234 | 
     while read -r message; do
-
-        #print info at the first time
-        if [ $hasPrintOpenServer -eq 0 ]; then 
-            echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
-            echo "Listening on 0.0.0.0 $(get_port)"
-            hasPrintOpenServer=1
-        di
-
-
         if [[ "$message" =~ assignment ]]; then
             process_assignment
             echo "pA"
