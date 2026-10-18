@@ -36,27 +36,6 @@ process_population(){
     :
 }
 
-
-
-echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
-echo "Listening on 0.0.0.0 $(get_port)"
-#open connection then determine which branch to go based on message
-shopt -s nocasematch
-(
-    while true;do
-        nc -l -p 1234 | 
-        while read -r message; do
-            if [[ "$message" =~ assignment ]]; then
-                process_assignment
-            elif [[ "$message" =~ population ]]; then
-                process_population
-            else 
-                echo "request does not contain any keywords"
-            fi
-        done
-    done
-)&
-
 #print new connection IP&Port
 (
     pre=""
@@ -70,4 +49,35 @@ shopt -s nocasematch
         sleep 0.1
     done
 ) &
+
+#open connection then determine which branch to go based on message
+shopt -s nocasematch
+
+
+
+hasPrintOpenServer=0
+while true;do
+    nc -l -p 1234 | 
+    while read -r message; do
+
+        #print info at the first time
+        if [ $hasPrintOpenServer -eq 0 ]; then 
+            echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
+            echo "Listening on 0.0.0.0 $(get_port)"
+            hasPrintOpenServer=1
+        di
+
+
+        if [[ "$message" =~ assignment ]]; then
+            process_assignment
+            echo "pA"
+        elif [[ "$message" =~ population ]]; then
+            process_population
+            echo "pP"
+        else 
+            echo "request does not contain any keywords"
+        fi
+    done
+done
+
 wait
