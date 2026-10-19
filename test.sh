@@ -11,5 +11,4 @@ curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
                 DATA="$DATA""$(cat population.csv | tail -n "$((line_count - 1))" | awk -F ',' -v col="$year_col" '{sum += $col} END {printf "%d", sum}')"$'\n'
             done
             printf '%s' "$DATA" > population_data.txt
-            python3 -m pip install matplotlib > /dev/null
             python3 plot_population.py
