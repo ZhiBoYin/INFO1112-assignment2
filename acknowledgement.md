@@ -1,5 +1,5 @@
-using chatgpt 6.1 sol to learn how to use nc, ss, awk commmand and wait keyword
-using ai for debugging， workflow checking
-using ai to help writting function that is repititive. such as extract small piece of text out from larger piece of text.
-using ai to learn and use named pipe (FIFO) for sending message back to client
-using ai to better understand what the spec want me to do
+using AI for:
+1. learning and review linux command and concepts including jq, nc, ss, FIFO, file descriptor, curl, until "condition"; do "something" done.
+2. using AI to write code that convert text into row&col, then extract info from the structured text convert into json structured text.
+    the workflow is design by myself, a temple presudo code is given as prompt. actual function are written by AI and review by myself.
+3. using AI to better understand what spec want me to do
