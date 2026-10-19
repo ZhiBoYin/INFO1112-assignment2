@@ -1,6 +1,32 @@
 #!/bin/bash
+get_ip(){
+    local line=""
+    local char=""
+    local result=""
+    result="$(ifconfig)"$'\n'
 
-
+    for ((i = 0; i < ${#result}; i++)); do
+        char="${result:i:1}"
+        #process this line
+        if [[ "$char" == $'\n' ]]; then
+            if [[ "$line" == *"inet "* ]]; then
+                result=${line#*"inet "}
+                result=${result%% *}
+                echo "$result"
+                return 0
+            fi
+            line=""
+        #build this line
+        else
+            line+="$char"
+        fi
+    done
+}
+get_port(){
+    res="$(ss -Hltn | awk '{print $4}' | tail -n 1)"
+    res=${res##*":"}
+    echo $res
+}
 assignmentText2json() {
   printf '%s\n' "$1" |
     awk '
@@ -65,7 +91,9 @@ assignmentText2json() {
     '
 }
 
-hasPrintPeerInfo=0
+
+
+PeerInfoPrintedCount=0
 #print new connection IP&Port && print server Info
 (
     port=""
@@ -85,7 +113,7 @@ hasPrintPeerInfo=0
                awk '{print $NF}')
         if [[ -n "$peer" && "$peer" != "$pre" ]]; then
             printf 'Connection received from: %s\n' "$peer"
-            hasPrintPeerInfo=$(($hasPrintPeerInfo + 1))
+            PeerInfoPrintedCount=$(($PeerInfoPrintedCount + 1))
         fi
         pre="$peer"
         sleep 0.1
@@ -104,8 +132,8 @@ while true; do
     nc -l -p 1234 < replies | while read -r message; do
 
         #wait until peer info has been print, assuming maximum one connection at a time
-        while [[ hasPrintPeerInfo -lt 1 ]]; do sleep 0.1; done
-        hasPrintPeerInfo=$(($hasPrintPeerInfo - 1))
+        while [[ PeerInfoPrintedCount -lt 1 ]]; do sleep 0.1; done
+        PeerInfoPrintedCount=$(($PeerInfoPrintedCount - 1))
 
         if [[ "$message" =~ assignment ]]; then
             content="$(curl https://www.sydney.edu.au/units/INFO1112/2026-S2C-ND-CC | html2text )"
@@ -116,7 +144,23 @@ while true; do
             $(assignmentText2json "$AssignmentInfo") >&3
 
         elif [[ "$message" =~ population ]]; then
+            curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
             
+            #diplay population:
+            cat population.csv | awk -F ',' '{sum += $15} END {printf "population in 2025: %d\n" , sum}'
+            
+            #plot:
+            DATA=""
+            line_count=$(cat population.csv | awk -F ',' '{sum+=1} END {printf "%d", sum}')
+            for ((year_col=4; year_col<=15; year_col=$((year_col + 1)) )); do
+                DATA="$DATA""$(cat population.csv | head -n 1 | awk -F ',' -v col="$year_col" '{printf "%d-", $col}')"
+                DATA="$DATA""$(cat population.csv | tail -n "$((line_count - 1))" | awk -F ',' -v col="$year_col" '{sum += $col} END {printf "%d", sum}')"$'\n'
+            done
+            printf '%s' "$DATA" > population_data.txt
+            python3 -m pip install matplotlib > /dev/null
+            python3 plot_population.py
+            
+
         elif [[ asking_population -eq 1 ]]; then
             """
             if message is a valid name/coord -> POI process
