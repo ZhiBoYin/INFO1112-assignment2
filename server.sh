@@ -126,7 +126,6 @@ PeerInfoPrintedCount=0
 shopt -s nocasematch
 mkfifo replies
 exec 3<> replies
-asking_population=0
 
 while true; do
     nc -l -p 1234 < replies | while read -r message; do
@@ -144,6 +143,7 @@ while true; do
             $(assignmentText2json "$AssignmentInfo") >&3
 
         elif [[ "$message" =~ population ]]; then
+
             curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
             
             #diplay population:
@@ -161,12 +161,17 @@ while true; do
             python3 plot_population.py
             
 
-        elif [[ asking_population -eq 1 ]]; then
-            """
-            if message is a valid name/coord -> POI process
-            """
-        else
-            echo "message doesn't contain any valid keyword"
+        elif [[ $(checkPOI "$message") ]]; then
+
+         
+            distance=500
+            neighboring=""
+
+
+            
+        else 
+            echo "message doesn't contain any valid keyword";
+
         fi
     done
 done
