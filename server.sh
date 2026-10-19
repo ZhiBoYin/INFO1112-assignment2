@@ -162,12 +162,10 @@ while true; do
             
 
         elif [[ $(checkPOI "$message") ]]; then
-
-         
             distance=500
-            neighboring=""
+            neighboring_list=""
 
-
+            echo $"neighboring_list" >&3
             
         else 
             echo "message doesn't contain any valid keyword";
