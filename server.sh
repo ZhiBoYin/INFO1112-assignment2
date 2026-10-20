@@ -91,8 +91,6 @@ assignmentText2json() {
     '
 }
 
-
-PeerInfoPrintedCount=0
 #print new connection IP&Port && print server Info
 (
     port=""
