@@ -136,9 +136,9 @@ while true; do
 
         if [[ "$message" =~ assignment ]]; then
             content="$(curl https://www.sydney.edu.au/units/INFO1112/2026-S2C-ND-CC | html2text )"
-            if [[ $? -ne 0 ]]; then echo "fail to get assignment infomation from url"; fi
+            if [[ $? -ne 0 ]]; then echo "fail to get assignment infomation from url"; continue;fi
             AssignmentInfo=$(echo "$content" | sed -n '/Assignment 2/,/Outcomes assessed:/{ /Outcomes assessed:/d; p; }')
-            echo AssignmentInfo
+            echo AssignmentInfo >&3
 
             $(assignmentText2json "$AssignmentInfo") >&3
 
@@ -147,7 +147,8 @@ while true; do
             curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
             
             #diplay population:
-            cat population.csv | awk -F ',' '{sum += $15} END {printf "population in 2025: %d\n" , sum}'
+            $(cat population.csv | awk -F ',' '{sum += $15} END {printf "population in 2025: %d\n" , sum}') >&3
+            if[[ $? -ne 0 ]]; then echo "fail to get and display 2025 populationo" >&3; continue; fi;
             
             #plot:
             DATA=""
@@ -157,19 +158,74 @@ while true; do
                 DATA="$DATA""$(cat population.csv | tail -n "$((line_count - 1))" | awk -F ',' -v col="$year_col" '{sum += $col} END {printf "%d", sum}')"$'\n'
             done
             printf '%s' "$DATA" > population_data.txt
-            python3 -m pip install matplotlib > /dev/null
             python3 plot_population.py
+            if [[ -f ./population.png  ]];then
+              cat ./population.png >&3
+            else
+              echo "fail to generate population.png image" >&3
+              continue
+
+        else
             
+            if [[ "$message" =~ ^[0-9]+\.[0-9]*$ ]]; then
+              neighbors=$(
+              curl -s -G \
+                --data-urlencode "where=1=1" \
+                --data-urlencode "geometry=$message" \
+                --data-urlencode "geometryType=esriGeometryPoint" \
+                --data-urlencode "inSR=4326" \
+                --data-urlencode "spatialRel=esriSpatialRelIntersects" \
+                --data-urlencode "distance=500" \
+                --data-urlencode "units=esriSRUnit_Meter" \
+                --data-urlencode "outFields=poiname,objectid" \
+                --data-urlencode "returnGeometry=true" \
+                --data-urlencode "f=json" \
+                "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
+            )
+            else
+              #get POI coordinate if give poiname
+              response=$(\
+                curl -s -f -G \
+                --data-urlencode "where=poiname='FISHER LIBRARY SYDNEY UNIVERSITY'" \
+                --data-urlencode "outFields=poiname,objectid" \
+                --data-urlencode "returnGeometry=true" \
+                --data-urlencode "f=json" \
+                "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
+              )
+              echo "$response" > test1.json
+              if jq -e 'has("error")' <<< "$response" >/dev/null; then
+                echo "fail to get POI data using given poiname." >&3
+                continue
+              fi
 
-        elif [[ $(checkPOI "$message") ]]; then
-            distance=500
-            neighboring_list=""
 
-            echo $"neighboring_list" >&3
-            
-        else 
-            echo "message doesn't contain any valid keyword";
+              geometry=$(jq -er '
+                .features[0].geometry
+                | select(. != null)
+                | "\(.x),\(.y)"
+              ' <<< "$response")
+              if [[ $? -ne 0 ]]; then
+                echo "fail to get POI data." >&3
+                continue
+              fi
 
+              neighbors=$(
+                curl -s -G \
+                  --data-urlencode "where=1=1" \
+                  --data-urlencode "geometry=$geometry" \
+                  --data-urlencode "geometryType=esriGeometryPoint" \
+                  --data-urlencode "inSR=4326" \
+                  --data-urlencode "spatialRel=esriSpatialRelIntersects" \
+                  --data-urlencode "distance=500" \
+                  --data-urlencode "units=esriSRUnit_Meter" \
+                  --data-urlencode "outFields=poiname,objectid" \
+                  --data-urlencode "returnGeometry=true" \
+                  --data-urlencode "f=json" \
+                  "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
+              )
+            fi
+            echo "$neighbors">testNeighbors.json
+          
         fi
     done
 done
@@ -178,21 +234,3 @@ exec 3>&-
 rm replies
 
 wait
-
-
-
-{   
-    "title" : "Assignment 2",
-    "topic" : "Networking",
-    "due_date" : "01 Nov 2026 23:59",
-    "points" : 15
-}
-
-"""
-                Assignment 2              Due date: 01
-Creative work   Programming task - 15%    Nov 2026 at 23: 3 weeks AI allowed
-                Networking                59
-                Concepts                  Closing date:
-                                          06 Dec 2026
-
-"""

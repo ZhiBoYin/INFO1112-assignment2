@@ -1,0 +1,167 @@
+{
+    "displayFieldName": "poiname",
+    "fieldAliases": {
+        "objectid": "RID",
+        "topoid": "topoid",
+        "poigroup": "poigroup",
+        "poitype": "poitype",
+        "poiname": "poiname",
+        "poilabel": "poilabel",
+        "poilabeltype": "poilabeltype",
+        "poialtlabel": "poialtlabel",
+        "poisourcefeatureoid": "poisourcefeatureoid",
+        "accesscontrol": "accesscontrol",
+        "startdate": "startdate",
+        "enddate": "enddate",
+        "lastupdate": "lastupdate",
+        "msoid": "msoid",
+        "centroidid": "centroidid",
+        "shapeuuid": "shapeuuid",
+        "changetype": "changetype",
+        "processstate": "processstate",
+        "urbanity": "urbanity"
+    },
+    "geometryType": "esriGeometryPoint",
+    "spatialReference": {
+        "wkid": 4283,
+        "latestWkid": 4283
+    },
+    "fields": [
+        {
+            "name": "objectid",
+            "type": "esriFieldTypeOID",
+            "alias": "RID"
+        },
+        {
+            "name": "topoid",
+            "type": "esriFieldTypeInteger",
+            "alias": "topoid"
+        },
+        {
+            "name": "poigroup",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "poigroup"
+        },
+        {
+            "name": "poitype",
+            "type": "esriFieldTypeString",
+            "alias": "poitype",
+            "length": 50
+        },
+        {
+            "name": "poiname",
+            "type": "esriFieldTypeString",
+            "alias": "poiname",
+            "length": 100
+        },
+        {
+            "name": "poilabel",
+            "type": "esriFieldTypeString",
+            "alias": "poilabel",
+            "length": 130
+        },
+        {
+            "name": "poilabeltype",
+            "type": "esriFieldTypeString",
+            "alias": "poilabeltype",
+            "length": 10
+        },
+        {
+            "name": "poialtlabel",
+            "type": "esriFieldTypeString",
+            "alias": "poialtlabel",
+            "length": 50
+        },
+        {
+            "name": "poisourcefeatureoid",
+            "type": "esriFieldTypeInteger",
+            "alias": "poisourcefeatureoid"
+        },
+        {
+            "name": "accesscontrol",
+            "type": "esriFieldTypeInteger",
+            "alias": "accesscontrol"
+        },
+        {
+            "name": "startdate",
+            "type": "esriFieldTypeDate",
+            "alias": "startdate",
+            "length": 8
+        },
+        {
+            "name": "enddate",
+            "type": "esriFieldTypeDate",
+            "alias": "enddate",
+            "length": 8
+        },
+        {
+            "name": "lastupdate",
+            "type": "esriFieldTypeDate",
+            "alias": "lastupdate",
+            "length": 8
+        },
+        {
+            "name": "msoid",
+            "type": "esriFieldTypeInteger",
+            "alias": "msoid"
+        },
+        {
+            "name": "centroidid",
+            "type": "esriFieldTypeInteger",
+            "alias": "centroidid"
+        },
+        {
+            "name": "shapeuuid",
+            "type": "esriFieldTypeString",
+            "alias": "shapeuuid",
+            "length": 38
+        },
+        {
+            "name": "changetype",
+            "type": "esriFieldTypeString",
+            "alias": "changetype",
+            "length": 2
+        },
+        {
+            "name": "processstate",
+            "type": "esriFieldTypeString",
+            "alias": "processstate",
+            "length": 5
+        },
+        {
+            "name": "urbanity",
+            "type": "esriFieldTypeString",
+            "alias": "urbanity",
+            "length": 2
+        }
+    ],
+    "features": [
+        {
+            "attributes": {
+                "objectid": 3083,
+                "topoid": 500323885,
+                "poigroup": 1,
+                "poitype": "Library",
+                "poiname": "FISHER LIBRARY SYDNEY UNIVERSITY",
+                "poilabel": "FISHER LIBRARY SYDNEY UNIVERSITY",
+                "poilabeltype": "NAMED",
+                "poialtlabel": null,
+                "poisourcefeatureoid": 14,
+                "accesscontrol": 1,
+                "startdate": 1344594503000,
+                "enddate": 32503680000000,
+                "lastupdate": 1344594513266,
+                "msoid": 143190,
+                "centroidid": null,
+                "shapeuuid": "71adb868-ad78-3335-adbb-222ed14d68a4",
+                "changetype": "M",
+                "processstate": null,
+                "urbanity": "U"
+            },
+            "geometry": {
+                "x": 151.19049355206874,
+                "y": -33.886316917424516
+            }
+        }
+    ]
+}

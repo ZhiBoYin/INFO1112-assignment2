@@ -12,3 +12,26 @@ curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
             done
             printf '%s' "$DATA" > population_data.txt
             python3 plot_population.py
+
+
+
+
+
+
+
+
+{   
+    "title" : "Assignment 2",
+    "topic" : "Networking",
+    "due_date" : "01 Nov 2026 23:59",
+    "points" : 15
+}
+
+"""
+                Assignment 2              Due date: 01
+Creative work   Programming task - 15%    Nov 2026 at 23: 3 weeks AI allowed
+                Networking                59
+                Concepts                  Closing date:
+                                          06 Dec 2026
+
+"""
