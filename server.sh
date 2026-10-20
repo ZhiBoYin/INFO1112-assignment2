@@ -23,8 +23,8 @@ get_ip(){
     done
 }
 get_port(){
-    res="$(ss -Hltn | awk '{print $4}' | tail -n 1)"
-    res=${res##*":"}
+    res="$(ss -Hltn '( sport = :1234 )' | awk '{print $4}' | tail -n 1)"
+    res=${res##*:}
     echo $res
 }
 assignmentText2json() {
@@ -92,7 +92,6 @@ assignmentText2json() {
 }
 
 
-
 PeerInfoPrintedCount=0
 #print new connection IP&Port && print server Info
 (
@@ -106,18 +105,6 @@ PeerInfoPrintedCount=0
     done
     echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
     echo "Listening on 0.0.0.0 $(get_port)"
-
-    pre=""
-    while true; do
-        peer=$(ss -Htn state established '( sport = :1234 )' |
-               awk '{print $NF}')
-        if [[ -n "$peer" && "$peer" != "$pre" ]]; then
-            printf 'Connection received from: %s\n' "$peer"
-            PeerInfoPrintedCount=$(($PeerInfoPrintedCount + 1))
-        fi
-        pre="$peer"
-        sleep 0.1
-    done
 )&
 
 
@@ -128,27 +115,33 @@ mkfifo replies
 exec 3<> replies
 
 while true; do
-    nc -l -p 1234 < replies | while read -r message; do
 
-        #wait until peer info has been print, assuming maximum one connection at a time
-        while [[ PeerInfoPrintedCount -lt 1 ]]; do sleep 0.1; done
-        PeerInfoPrintedCount=$(($PeerInfoPrintedCount - 1))
-
+    nc -l -p 1234 < replies | {
+      peer_printed=0
+      while read -r message; do
+        #check if client info printed
+        if [[ $peer_printed -eq 0 ]]; then
+          peer=$(ss -Htn state established '( sport = :1234 )' | awk '{print $NF}')
+          printf 'Connection received from: %s\n' "$peer"
+          peer_printed=1
+        fi
+        #request assignment
         if [[ "$message" =~ assignment ]]; then
             content="$(curl https://www.sydney.edu.au/units/INFO1112/2026-S2C-ND-CC | html2text )"
-            if [[ $? -ne 0 ]]; then echo "fail to get assignment infomation from url"; continue;fi
+            if [[ -z "$content" ]]; then echo "fail to get assignment infomation from url"; continue;fi
             AssignmentInfo=$(echo "$content" | sed -n '/Assignment 2/,/Outcomes assessed:/{ /Outcomes assessed:/d; p; }')
-            echo AssignmentInfo >&3
-
-            $(assignmentText2json "$AssignmentInfo") >&3
-
+            echo "$AssignmentInfo" >&3
+            printf "assignment info in json:\n"
+            assignmentText2json "$AssignmentInfo" >&3
+            printf "\n"
+        #request population
         elif [[ "$message" =~ population ]]; then
 
             curl -L -o population.csv https://dbr.abs.gov.au/processedData/csv/STE_1.csv
-            
+             if [[ $? -ne 0 ]]; then echo "fail to download population csv file" >&3; continue; fi;
             #diplay population:
-            $(cat population.csv | awk -F ',' '{sum += $15} END {printf "population in 2025: %d\n" , sum}') >&3
-            if[[ $? -ne 0 ]]; then echo "fail to get and display 2025 populationo" >&3; continue; fi;
+            cat population.csv | awk -F ',' '{sum += $15} END {printf "population in 2025: %d\n" , sum}' >&3
+            if [[ $? -ne 0 ]]; then echo "fail to get and display 2025 populationo" >&3; continue; fi;
             
             #plot:
             DATA=""
@@ -160,18 +153,23 @@ while true; do
             printf '%s' "$DATA" > population_data.txt
             python3 plot_population.py
             if [[ -f ./population.png  ]];then
+              printf "population.png in raw byte:\n" >&3
               cat ./population.png >&3
+              printf "\n" >&3
+              rm ./population.png
             else
               echo "fail to generate population.png image" >&3
               continue
-
+            fi
+        #request POI
         else
-            
-            if [[ "$message" =~ ^[0-9]+\.[0-9]*$ ]]; then
+            #if message is in coordinate form
+            message=${message//\'/\'\'}
+            if [[ "$message" =~ ^-?[0-9]+\.[0-9]*,-?[0-9]+\.[0-9]*$ ]]; then
               neighbors=$(
               curl -s -G \
                 --data-urlencode "where=1=1" \
-                --data-urlencode "geometry=$message" \
+                --data-urlencode "geometry='$message'" \
                 --data-urlencode "geometryType=esriGeometryPoint" \
                 --data-urlencode "inSR=4326" \
                 --data-urlencode "spatialRel=esriSpatialRelIntersects" \
@@ -182,14 +180,16 @@ while true; do
                 --data-urlencode "f=json" \
                 "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
             )
+            #if not in coordinate form
             else
               #get POI coordinate if give poiname
               response=$(\
                 curl -s -f -G \
-                --data-urlencode "where=poiname='FISHER LIBRARY SYDNEY UNIVERSITY'" \
+                --data-urlencode "where=poiname='$message'" \
                 --data-urlencode "outFields=poiname,objectid" \
                 --data-urlencode "returnGeometry=true" \
                 --data-urlencode "f=json" \
+                --data-urlencode "outSR=4326" \
                 "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
               )
               echo "$response" > test1.json
@@ -197,7 +197,6 @@ while true; do
                 echo "fail to get POI data using given poiname." >&3
                 continue
               fi
-
 
               geometry=$(jq -er '
                 .features[0].geometry
@@ -212,7 +211,7 @@ while true; do
               neighbors=$(
                 curl -s -G \
                   --data-urlencode "where=1=1" \
-                  --data-urlencode "geometry=$geometry" \
+                  --data-urlencode "geometry='$geometry'" \
                   --data-urlencode "geometryType=esriGeometryPoint" \
                   --data-urlencode "inSR=4326" \
                   --data-urlencode "spatialRel=esriSpatialRelIntersects" \
@@ -223,11 +222,11 @@ while true; do
                   --data-urlencode "f=json" \
                   "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
               )
-            fi
-            echo "$neighbors">testNeighbors.json
-          
-        fi
+            fi #endif -- if not in coordinate form
+            echo "$neighbors" >&3
+        fi # endif -- request POI
     done
+    }
 done
 
 exec 3>&-
