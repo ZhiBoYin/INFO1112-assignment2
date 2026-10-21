@@ -103,6 +103,8 @@ assignmentText2json() {
     done
     echo "The server is running at Link addr:$(get_ip), port=$(get_port)"
     echo "Listening on 0.0.0.0 $(get_port)"
+
+
 )&
 
 
@@ -112,24 +114,25 @@ shopt -s nocasematch
 mkfifo replies
 exec 3<> replies
 
+
 while true; do
 
     nc -l -p 1234 < replies | {
       peer_printed=0
+      #check if client info printed
+      if [[ $peer_printed -eq 0 ]]; then
+        peer=$(ss -Htn state established '( sport = :1234 )' | awk '{print $NF}')
+        printf 'Connection received from: %s\n' "$peer"
+        peer_printed=1
+      fi
       while read -r message; do
-        #check if client info printed
-        if [[ $peer_printed -eq 0 ]]; then
-          peer=$(ss -Htn state established '( sport = :1234 )' | awk '{print $NF}')
-          printf 'Connection received from: %s\n' "$peer"
-          peer_printed=1
-        fi
         #request assignment
         if [[ "$message" =~ assignment ]]; then
-            content="$(curl https://www.sydney.edu.au/units/INFO1112/2026-S2C-ND-CC | html2text )"
+            content="$(curl https://www.sydney.edu.au/units/INFO1112/2026-S2C-ND-CC | html2text )" >&2
             if [[ -z "$content" ]]; then echo "fail to get assignment infomation from url"; continue;fi
             AssignmentInfo=$(echo "$content" | sed -n '/Assignment 2/,/Outcomes assessed:/{ /Outcomes assessed:/d; p; }')
             echo "$AssignmentInfo" >&3
-            printf "assignment info in json:\n"
+            printf "assignment info in json:\n" >&3
             assignmentText2json "$AssignmentInfo" >&3
             printf "\n"
         #request population
@@ -178,6 +181,7 @@ while true; do
                 --data-urlencode "f=json" \
                 "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
             )
+            
             #if not in coordinate form
             else
               #get POI coordinate if give poiname
@@ -192,7 +196,7 @@ while true; do
               )
               echo "$response" > test1.json
               if jq -e 'has("error")' <<< "$response" >/dev/null; then
-                echo "fail to get POI data using given poiname." >&3
+                printf "fail to get POI data using given poiname.\nusage:\n\t1.<POI NAME>\texample:'FISHER LIBRARY SYDNEY UNIVERSITY'\n\t2.<X-coordinate,Y-coordinate>\texample:'151.19231212847933,-33.886153450498689'\n" >&3
                 continue
               fi
 
@@ -202,7 +206,7 @@ while true; do
                 | "\(.x),\(.y)"
               ' <<< "$response")
               if [[ $? -ne 0 ]]; then
-                echo "fail to get POI data." >&3
+                printf "fail to get geometry using given poiname.\nusage:\n\t1.<POI NAME>\texample:'FISHER LIBRARY SYDNEY UNIVERSITY'\n\t2.<X-coordinate,Y-coordinate>\texample:'151.19231212847933,-33.886153450498689'\n" >&3
                 continue
               fi
 
@@ -221,7 +225,8 @@ while true; do
                   "https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_POI/MapServer/0/query"
               )
             fi #endif -- if not in coordinate form
-            echo "$neighbors" >&3
+           
+            echo "$neighbors" | jq .features >&3
         fi # endif -- request POI
     done
     }
